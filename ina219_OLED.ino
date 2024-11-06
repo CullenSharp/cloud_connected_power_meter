@@ -54,7 +54,7 @@ void loop() {
   Serial.println(" mW");
 
   //clear display
-  display.cleardisplay();
+  display.clearDisplay();
   
   // Set text size
   display.setTextSize(1);
