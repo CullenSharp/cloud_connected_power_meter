@@ -1,10 +1,20 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <esp_wifi.h>
+#include <Wire.h>
+#include <Adafruit_INA219.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 #include "config.h"
 #include "AdafruitIO_WiFi.h"
 
-AdafruitIO_Feed *digital = io.feed("digital");
+//Create Adafruit IO instances for uploading to the cloud
+AdafruitIO_Feed *voltage = io.feed("Voltage");
+AdafruitIO_Feed *current = io.feed("Current");
+AdafruitIO_Feed *power = io.feed("Power");
+
+// Create an INA219 instance
+Adafruit_INA219 ina219;
 
 // Gets MAC Address for the esp32, This function is needed
 // If you want to communicate with PSU's IoT Network
@@ -49,11 +59,43 @@ void setup() {
     delay(500);
   }
 
+  // Initialize INA219
+  if (!ina219.begin()){
+    Serial.println("Unable to Initialize INA 219 Library");
+  while(1);
+  }
 
-  // Connection Sucessful
+  // Connection Successful
   Serial.println(io.statusText());
 }
 
 void loop() {
-  
+  // Fetch values from the INA219
+  float voltageValue = ina219.getBusVoltage_V();
+  float currentValue = ina219.getCurrent_mA();
+  float powerValue = ina219.getPower_mW();
+
+  // Print the results to the Serial Monitor
+  Serial.print("Bus Voltage: ");
+  Serial.print(voltageValue);
+  Serial.println(" V");
+
+  Serial.print("Current: ");
+  Serial.print(currentValue);
+  Serial.println(" mA");
+
+  Serial.print("Power: ");
+  Serial.print(powerValue);
+  Serial.println(" mW");
+
+  // Send the results to Adafruit IO cloud
+  io.run();
+
+  // Save the readings to the Adafruit IO feeds
+  voltage->save(String(voltageValue));
+  current->save(String(currentValue));
+  power->save(String(powerValue));
+
+  delay(2000); // Wait for 2 seconds before the next reading (reduces throttle)
 }
+
